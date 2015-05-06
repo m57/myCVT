@@ -112,7 +112,7 @@ def do_it(pp):
 		for rule in pp["rules"]:
 			if rule[len(rule)-1] == id[1]:
 				#print rule
-				if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY]:
+				if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule:
 					# ADD CLEANUP TO ANY RULES HERE BEFORE PUSH
 
 					rule.pop(len(rule)-1)
