@@ -24,7 +24,7 @@ import base64
 from terminaltables import AsciiTable
 from bs4 import BeautifulSoup
 
-version = "v 0.1.1"
+version = "v 0.1"
 
 def banner():
 	print "\n"
@@ -112,7 +112,7 @@ def do_it(pp):
 		for rule in pp["rules"]:
 			if rule[len(rule)-1] == id[1]:
 				#print rule
-				if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule:
+				if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY]:
 					# ADD CLEANUP TO ANY RULES HERE BEFORE PUSH
 
 					rule.pop(len(rule)-1)
