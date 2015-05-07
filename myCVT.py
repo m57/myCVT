@@ -21,15 +21,19 @@
 import sys
 import re
 import base64
+from terminaltables import SingleTable
 from terminaltables import AsciiTable
 from bs4 import BeautifulSoup
 
-version = "v 0.1.3"
+version = "v 0.1.5"
+verbose = 0
+SEC_POLICY = { "title": "", "columns" : [] , "rules" : [] , "ruleSections" : [] }
 
 def banner():
-	print "\n"
+	print "\n\033[1;32m"
 	banner = "ICAgICAgICAgICAgICAgICAgICAgIC5kODg4OGIuIDg4OCAgICAgODg4ODg4ODg4ODg4ODggCiAgICAgICAgICAgICAgICAgICAgIGQ4OFAgIFk4OGI4ODggICAgIDg4OCAgICA4ODggICAgIAogICAgICAgICAgICAgICAgICAgICA4ODggICAgODg4ODg4ICAgICA4ODggICAgODg4ICAgICAKODg4ODhiLmQ4OGIuIDg4OCAgODg4ODg4ICAgICAgIFk4OGIgICBkODhQICAgIDg4OCAgICAgCjg4OCAiODg4ICI4OGI4ODggIDg4ODg4OCAgICAgICAgWTg4YiBkODhQICAgICA4ODggICAgIAo4ODggIDg4OCAgODg4ODg4ICA4ODg4ODggICAgODg4ICBZODhvODhQICAgICAgODg4ICAgICAKODg4ICA4ODggIDg4OFk4OGIgODg4WTg4YiAgZDg4UCAgIFk4ODhQICAgICAgIDg4OCAgICAgCjg4OCAgODg4ICA4ODggIlk4ODg4OCAiWTg4ODhQIiAgICAgWThQICAgICAgICA4ODggICAgIAogICAgICAgICAgICAgICAgICA4ODggICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgIFk4YiBkODhQICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgIlk4OFAiICAgCQkJCSVzCg=="
 	print base64.b64decode(banner) % version
+	print "\033[0m"
 	print " " * 25 + "AUTHORS: @_x90__\n" + " " * 34 + "/u/jessikawii"
 	print "-" * 53
 	print
@@ -37,12 +41,15 @@ def banner():
 
 if (len(sys.argv) < 2):
 	banner()
-	print "Usage: %s [CHECKPOINT HTML FILE]\n" % sys.argv[0]
+	print "Usage: %s [CHECKPOINT HTML FILE] [optional args]\n\nOptional Arguments:\n\t-v --verbose\n" % sys.argv[0]
 	exit(1)
+
+if "-v" in sys.argv or "--verbose" in sys.argv:
+
+	verbose += 1
 
 soup=BeautifulSoup(open(sys.argv[1]))
 rows=soup.find_all(class_=re.compile("(even|odd)_data_row"))
-SEC_POLICY = { "title": "", "columns" : [] , "rules" : [] , "ruleSections" : [] }
 
 def parse_SECPOLICY(soup):
 
@@ -90,18 +97,17 @@ def parse_SECPOLICY(soup):
 			SEC_POLICY["rules"].append(ruleItem)
 		## SET RULE ITEM BACK TO 0
 		ruleItem = []
-	## PRINT FOR TESTING
-	#print SEC_POLICY["rules"][5]
 
 def do_it(pp):
 
+	ids = []
 	table_data = []
 	headers = []
+	no_section = []
 
 	for h in pp["columns"]:
 		headers.append(str(h))
 
-	headers.pop(len(headers)-1)
 	table_data.append(headers)
 
 	SOURCEKEY	= pp["columns"].index("SOURCE")
@@ -109,38 +115,92 @@ def do_it(pp):
 	SERVICEKEY	= pp["columns"].index("SERVICE")
 
 	for id in pp["ruleSections"]:
+		ids.append(id[1])
+
+	for id in pp["ruleSections"]:
 		for rule in pp["rules"]:
-			if rule[len(rule)-1] == id[1]:
-				#print rule
-				if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule:
-					# ADD CLEANUP TO ANY RULES HERE BEFORE PUSH
-
-					rule.pop(len(rule)-1)
-					# pop groupID off which was ours for reference
-
-					result = re.findall(".*(?=\xa0)", rule[len(rule)-1])
-					if len(result) > 0:
-						rule[len(rule)-1] = unicode(result[0])
-					# remove checkpoints shitty characters
-
+			rule = clean_rule(rule)
+			if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule[0]:
+				if rule[len(rule)-1] == id[1]:
 					table_data.append(rule)
-
+					pp["rules"].remove(rule)
+				elif rule[len(rule)-1] not in ids:
+					if rule not in no_section:
+						no_section.append(rule)
+						pp["rules"].remove(rule)
+				else:
+					pass
 		if len(table_data) > 1:
-			print "===> SECTION: %s <===" % id[0]
+			new_table_data = clean_td(table_data)
 
 			ascii = AsciiTable(table_data)
+			single = SingleTable(table_data)
+
 			ascii.inner_row_border = True
+			single.inner_row_border = True
 
-			print ascii.table ## RESET TABLE DATA
+			a = ascii.table
+			s = single.table
 
+			write_output(a, id[0])
 
-			f = open(name+"-myCVT-output.txt", "a")
-			f.write("\n===> SECTION: %s <===\n" % id[0])
-			f.write(ascii.table)
-			f.close()
+			if (verbose):
+				print "===> SECTION: %s <===" % id[0]
+				print s
 
 			table_data = []
 			table_data.append(headers)
+
+	if len(no_section) > 0:
+		table_data = []
+		headers = []
+
+		for h in pp["columns"]:
+			headers.append(str(h))
+
+		table_data.append(headers)
+
+		for rule in no_section:
+			table_data.append(rule)
+
+		table_data = clean_td(table_data)
+
+		ascii = AsciiTable(table_data)
+		single = SingleTable(table_data)
+
+		single.inner_row_border = True
+		ascii.inner_row_border = True
+
+		a = ascii.table
+		s = single.table
+
+		write_output(a, "(NO SECTION DEFINED)")
+		if (verbose):
+			print "===> NO SECTION DEFINED (THESE ARE USUALLY AT THE TOP) <==="
+			print s
+
+	n = name + "-myCVT-output.txt"
+	print "\033[1;32m[+] Written output to file ./%s\n" % n
+
+def write_output(table, id):
+
+	f = open(name+"-myCVT-output.txt", "a")
+	f.write("\n===> SECTION: %s <===\n" % id)
+	f.write(table)
+	f.close()
+
+def clean_td(table_data):
+	for rule in table_data:
+		rule.pop(len(rule)-1)
+	return table_data
+
+def clean_rule(rule):
+	# ADD CLEANUP TO ANY RULES HERE BEFORE PUSH
+	result = re.findall(u".*(?=\xa0)", rule[len(rule)-2])
+	if len(result) > 0:
+		rule[len(rule)-2] = unicode(result[0])
+
+	return rule
 
 
 if __name__ == "__main__":
@@ -150,7 +210,9 @@ if __name__ == "__main__":
 	else:
 		name = sys.argv[1]
 
+
 	open(name+"-myCVT-output.txt", "w").close() # nice lil hack here to clear the out file...
 	parse_SECPOLICY(soup)
 	banner()
 	do_it(SEC_POLICY)
+
