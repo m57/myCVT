@@ -24,7 +24,7 @@ import base64
 from terminaltables import AsciiTable
 from bs4 import BeautifulSoup
 
-version = "v 0.1.2"
+version = "v 0.1.3"
 
 def banner():
 	print "\n"
@@ -135,7 +135,7 @@ def do_it(pp):
 
 
 			f = open(name+"-myCVT-output.txt", "a")
-			f.write("===> SECTION: %s <===\n" % id[0])
+			f.write("\n===> SECTION: %s <===\n" % id[0])
 			f.write(ascii.table)
 			f.close()
 
