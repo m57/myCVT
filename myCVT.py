@@ -24,7 +24,7 @@ import base64
 from terminaltables import AsciiTable
 from bs4 import BeautifulSoup
 
-version = "v 0.1"
+version = "v 0.1.2"
 
 def banner():
 	print "\n"
