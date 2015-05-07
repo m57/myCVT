@@ -127,13 +127,30 @@ def do_it(pp):
 
 		if len(table_data) > 1:
 			print "===> SECTION: %s <===" % id[0]
+
 			ascii = AsciiTable(table_data)
 			ascii.inner_row_border = True
-			print ascii.table ## RESET TABLE DATA 
+
+			print ascii.table ## RESET TABLE DATA
+
+
+			f = open(name+"-myCVT-output.txt", "a")
+			f.write("===> SECTION: %s <===\n" % id[0])
+			f.write(ascii.table)
+			f.close()
+
 			table_data = []
 			table_data.append(headers)
 
 
-parse_SECPOLICY(soup)
-banner()
-do_it(SEC_POLICY)
+if __name__ == "__main__":
+
+	if ".html" in sys.argv[1]:
+		name = sys.argv[1].split(".")[0]
+	else:
+		name = sys.argv[1]
+
+	open(name+"-myCVT-output.txt", "w").close() # nice lil hack here to clear the out file...
+	parse_SECPOLICY(soup)
+	banner()
+	do_it(SEC_POLICY)
