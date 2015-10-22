@@ -20,6 +20,7 @@
 
 import sys
 import re
+import os
 import base64
 from terminaltables import SingleTable
 from terminaltables import AsciiTable
@@ -28,6 +29,7 @@ from bs4 import BeautifulSoup
 version = "v 0.1.5"
 verbose = 0
 SEC_POLICY = { "title": "", "columns" : [] , "rules" : [] , "ruleSections" : [] }
+conf_files = [ "objects.C", "objects.C_41", "objects_5_0.C", "rules.C", "rulebases.fws", "rulebases_5_0.fws" ]
 
 def banner():
 	print "\n\033[1;32m"
@@ -39,27 +41,26 @@ def banner():
 	print
 
 
-if (len(sys.argv) < 2):
-	banner()
-	print "Usage: %s [CHECKPOINT HTML FILE] [optional args]\n\nOptional Arguments:\n\t-v --verbose\n" % sys.argv[0]
-	exit(1)
+def find_configs(fs):
+	for root,dirs,files in os.walk(fs):
+		if len(files) > 0:
+			for f in files:
+				for fname in conf_files:
+					if fname == f:
+						print "%s/%s" % (root,f)
 
-if "-v" in sys.argv or "--verbose" in sys.argv:
-
-	verbose += 1
 
 soup=BeautifulSoup(open(sys.argv[1]))
 rows=soup.find_all(class_=re.compile("(even|odd)_data_row"))
-
+		
 def parse_SECPOLICY(soup):
 
 	## GET THE TABLE
 	tags=soup.find_all("table")
-
 	## GET THE HEADERS OF THE TABLE
 	for t in tags[1].find_all(class_=re.compile("header")):
 		SEC_POLICY["columns"].append(str(t.contents[0].strip()))
-
+		
 	## REMOVE FIRST COLUMN
 	SEC_POLICY["columns"].pop(0)
 
@@ -145,7 +146,7 @@ def do_it(pp):
 			write_output(a, id[0])
 
 			if (verbose):
-				print "===> SECTION: %s <===" % id[0]
+				print "--- SECTION: %s ---" % id[0]
 				print s
 
 			table_data = []
@@ -176,7 +177,7 @@ def do_it(pp):
 
 		write_output(a, "(NO SECTION DEFINED)")
 		if (verbose):
-			print "===> NO SECTION DEFINED (THESE ARE USUALLY AT THE TOP) <==="
+			print "--- NO SECTION DEFINED (THESE ARE USUALLY AT THE TOP) ---"
 			print s
 
 	n = name + "-myCVT-output.txt"
@@ -185,7 +186,7 @@ def do_it(pp):
 def write_output(table, id):
 
 	f = open(name+"-myCVT-output.txt", "a")
-	f.write("\n===> SECTION: %s <===\n" % id)
+	f.write("\n--- SECTION: %s ---\n" % id)
 	f.write(table)
 	f.close()
 
@@ -205,11 +206,24 @@ def clean_rule(rule):
 
 if __name__ == "__main__":
 
+	if (len(sys.argv) < 2):
+		banner()
+		print "Usage: %s -f [Checkpoint filesystem]" % sys.argv[0]
+		print "Usage: %s [CHECKPOINT HTML FILE] [optional args]\n\nOptional Arguments:\n\t-f\tFind Checkpoint Rules in filesystem\n\t-v\tverbose\n" % sys.argv[0]
+		exit(1)
+
+	if "-v" in sys.argv:
+		verbose += 1
+
+	if "-f" in sys.argv:
+		fs = sys.argv[sys.argv.index("-f")+1]
+		find_configs(fs)
+		exit(1)
+		
 	if ".html" in sys.argv[1]:
 		name = sys.argv[1].split(".")[0]
 	else:
 		name = sys.argv[1]
-
 
 	open(name+"-myCVT-output.txt", "w").close() # nice lil hack here to clear the out file...
 	parse_SECPOLICY(soup)
