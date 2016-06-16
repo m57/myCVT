@@ -26,7 +26,7 @@ from terminaltables import SingleTable
 from terminaltables import AsciiTable
 from bs4 import BeautifulSoup
 
-version = "v 0.1.5"
+version = "v 0.1.8"
 verbose = 0
 SEC_POLICY = { "title": "", "columns" : [] , "rules" : [] , "ruleSections" : [] }
 conf_files = [ "objects.C", "objects.C_41", "objects_5_0.C", "rules.C", "rulebases.fws", "rulebases_5_0.fws" ]
@@ -35,10 +35,18 @@ def banner():
 	print "\n\033[1;32m"
 	banner = "ICAgICAgICAgICAgICAgICAgICAgIC5kODg4OGIuIDg4OCAgICAgODg4ODg4ODg4ODg4ODggCiAgICAgICAgICAgICAgICAgICAgIGQ4OFAgIFk4OGI4ODggICAgIDg4OCAgICA4ODggICAgIAogICAgICAgICAgICAgICAgICAgICA4ODggICAgODg4ODg4ICAgICA4ODggICAgODg4ICAgICAKODg4ODhiLmQ4OGIuIDg4OCAgODg4ODg4ICAgICAgIFk4OGIgICBkODhQICAgIDg4OCAgICAgCjg4OCAiODg4ICI4OGI4ODggIDg4ODg4OCAgICAgICAgWTg4YiBkODhQICAgICA4ODggICAgIAo4ODggIDg4OCAgODg4ODg4ICA4ODg4ODggICAgODg4ICBZODhvODhQICAgICAgODg4ICAgICAKODg4ICA4ODggIDg4OFk4OGIgODg4WTg4YiAgZDg4UCAgIFk4ODhQICAgICAgIDg4OCAgICAgCjg4OCAgODg4ICA4ODggIlk4ODg4OCAiWTg4ODhQIiAgICAgWThQICAgICAgICA4ODggICAgIAogICAgICAgICAgICAgICAgICA4ODggICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgIFk4YiBkODhQICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgIlk4OFAiICAgCQkJCSVzCg=="
 	print base64.b64decode(banner) % version
-	print "\033[0m"
-	print " " * 25 + "AUTHORS: @_x90__\n" + " " * 34 + "/u/jessikawii"
-	print "-" * 53
+	print "\033[0m\t -- https://www.github.com/m57/ --"
+	print "\n\t       @_x90__ , @jeszicawii"
+	print "-" * 58
 	print
+
+def usage():
+
+		print "Usage: %s -f [Checkpoint HTML File] [optional arguments]" % sys.argv[0]
+		print "\nOptional Arguments:\n"
+		print "\t-s\t\tSearch for Checkpoint object files which can be imported into Nipper. (This cannot be used with '-f')"
+		print "\t-v\t\tPrint the results of the findings to the terminal in a table."
+		print""
 
 
 def find_configs(fs):
@@ -50,9 +58,6 @@ def find_configs(fs):
 						print "%s/%s" % (root,f)
 
 
-soup=BeautifulSoup(open(sys.argv[1]))
-rows=soup.find_all(class_=re.compile("(even|odd)_data_row"))
-		
 def parse_SECPOLICY(soup):
 
 	## GET THE TABLE
@@ -101,6 +106,16 @@ def parse_SECPOLICY(soup):
 
 def do_it(pp, filename):
 
+	filename = SEC_POLICY["title"] + "_" + filename + "_myCVT_results.txt"
+
+	if os.path.exists(filename):
+		c = raw_input("\033[1;33m[?]\033[0m '%s' output file already exists. Do you want to replace it? ([Y]/n) > " % filename).strip()
+		if c == "n" or c == "N":
+			print "\033[1;31m[!] Error\033[0m: Please remove file '%s', or agree to overwrite." % filename
+			exit(1)
+		else:
+			open(filename, "w").close()
+
 	ids = []
 	table_data = []
 	headers = []
@@ -136,8 +151,9 @@ def do_it(pp, filename):
 				elif rule[len(rule)-1] not in ids:
 					if rule not in no_section:
 						no_section.append(rule)
-						pp["rules"].remove(rule)
+						pp["rules"].remove(rule)				
 				else:
+					# hmmmmmmm so confused
 					pass
 
 		if len(table_data) > 1:
@@ -159,7 +175,7 @@ def do_it(pp, filename):
 				print s
 
 			table_data = []
-			table_data.append(headers)
+			table_data.append(pp['columns'])
 
 	if len(no_section) > 0:
 		table_data = []
@@ -184,23 +200,25 @@ def do_it(pp, filename):
 		a = ascii.table
 		s = single.table
 
-		write_output(a, "(NO SECTION DEFINED)")
+		write_output(filename, a, "(NO SECTION DEFINED)")
+
 		if (verbose):
 			print "--- NO SECTION DEFINED (THESE ARE USUALLY AT THE TOP) ---"
 			print s
 
-	print "\033[1;32m[+] Written output to file ./%s\n" % filename
+	print "\033[1;32m[+]\033[0m Written output to file './%s'\n" % filename
+
 
 def write_output(filename, table, id):
 
-	f = open(filename+"_myCVT_results.txt", "a")
+	f = open(filename, "a")
 	f.write("\n--- SECTION: %s ---\n" % id)
 	f.write(table)
 	f.close()
 
 def clean_td(table_data):
 	for rule in table_data:
-		if len(rule) > 0:
+		if (len(rule) > 0) and (not rule == SEC_POLICY["columns"]):
 			rule.pop(len(rule)-1)
 	return table_data
 
@@ -212,26 +230,43 @@ def clean_rule(rule):
 
 	return rule
 
-
 if __name__ == "__main__":
 
-	if (len(sys.argv) < 2) or "-h" in sys.argv or "--help" in sys.argv:
-		banner()
-		print "Usage: %s -f [Checkpoint filesystem]" % sys.argv[0]
-		print "Usage: %s [CHECKPOINT HTML FILE] [optional args]\n\nOptional Arguments:\n\t-f\tFind Checkpoint Rules in filesystem\n\t-v\tverbose\n" % sys.argv[0]
+	banner()
+
+	if ("-f" not in sys.argv) or ("-h" in sys.argv) or ("--help" in sys.argv):
+		usage()
 		exit(1)
 
 	if "-v" in sys.argv:
 		verbose += 1
 
-	if "-f" in sys.argv:
-		fs = sys.argv[sys.argv.index("-f")+1]
+	if "-s" in sys.argv:
+		fs = sys.argv[sys.argv.index("-s")+1]
 		find_configs(fs)
 		exit(1)
 
+	# Get and check file exists
+	
+	f = sys.argv[sys.argv.index("-f")+1]
+	if os.path.exists(f):
+		filename = f.split("/").pop()
+	else:
+		usage()
+		print "\033[1;31m[!] Error:\033[0m Cannot find file '%s'" % f
+		exit(1)
 
-	filename = sys.argv[1].split("/").pop()
+	# Parse it with BS4
+	print "\033[1;33m[-]\033[0m Parsing the HTML..."
+	soup=BeautifulSoup(open(filename))
+	rows=soup.find_all(class_=re.compile("(even|odd)_data_row"))
+	print "\033[1;32m[+]\033[0m Done."
+
+	# Parse internally
+	print "\033[1;33m[-]\033[0m Searching for interesting rules..."
 	parse_SECPOLICY(soup)
-	banner()
+	print "\033[1;32m[+]\033[0m Done."
+	
+	# Profit 
 	do_it(SEC_POLICY, filename)
 
