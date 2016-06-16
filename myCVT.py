@@ -118,22 +118,31 @@ def do_it(pp, filename):
 	for id in pp["ruleSections"]:
 		ids.append(id[1])
 
+#	print pp.keys()
+#	print pp["ruleSections"][0]
+#	print pp["ruleSections"][0][0]
+#	exit(1)
+
 	for id in pp["ruleSections"]:
+
 		for rule in pp["rules"]:
+#			print rule
 			rule = clean_rule(rule)
 			if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule[0]:
 				if rule[len(rule)-1] == id[1]:
 					table_data.append(rule)
 					pp["rules"].remove(rule)
+
 				elif rule[len(rule)-1] not in ids:
 					if rule not in no_section:
 						no_section.append(rule)
 						pp["rules"].remove(rule)
 				else:
 					pass
+
 		if len(table_data) > 1:
 			new_table_data = clean_td(table_data)
-
+			
 			ascii = AsciiTable(table_data)
 			single = SingleTable(table_data)
 
