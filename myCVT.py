@@ -99,7 +99,7 @@ def parse_SECPOLICY(soup):
 		## SET RULE ITEM BACK TO 0
 		ruleItem = []
 
-def do_it(pp):
+def do_it(pp, filename):
 
 	ids = []
 	table_data = []
@@ -143,7 +143,7 @@ def do_it(pp):
 			a = ascii.table
 			s = single.table
 
-			write_output(a, id[0])
+			write_output(filename, a, id[0])
 
 			if (verbose):
 				print "--- SECTION: %s ---" % id[0]
@@ -180,12 +180,11 @@ def do_it(pp):
 			print "--- NO SECTION DEFINED (THESE ARE USUALLY AT THE TOP) ---"
 			print s
 
-	n = name + "-myCVT-output.txt"
-	print "\033[1;32m[+] Written output to file ./%s\n" % n
+	print "\033[1;32m[+] Written output to file ./%s\n" % filename
 
-def write_output(table, id):
+def write_output(filename, table, id):
 
-	f = open(name+"-myCVT-output.txt", "a")
+	f = open(filename+"_myCVT_results.txt", "a")
 	f.write("\n--- SECTION: %s ---\n" % id)
 	f.write(table)
 	f.close()
@@ -206,7 +205,7 @@ def clean_rule(rule):
 
 if __name__ == "__main__":
 
-	if (len(sys.argv) < 2):
+	if (len(sys.argv) < 2) or "-h" in sys.argv or "--help" in sys.argv:
 		banner()
 		print "Usage: %s -f [Checkpoint filesystem]" % sys.argv[0]
 		print "Usage: %s [CHECKPOINT HTML FILE] [optional args]\n\nOptional Arguments:\n\t-f\tFind Checkpoint Rules in filesystem\n\t-v\tverbose\n" % sys.argv[0]
@@ -220,13 +219,8 @@ if __name__ == "__main__":
 		find_configs(fs)
 		exit(1)
 		
-	if ".html" in sys.argv[1]:
-		name = sys.argv[1].split(".")[0]
-	else:
-		name = sys.argv[1]
-
-	open(name+"-myCVT-output.txt", "w").close() # nice lil hack here to clear the out file...
+	filename = sys.argv[1].split("/").pop()
 	parse_SECPOLICY(soup)
 	banner()
-	do_it(SEC_POLICY)
+	do_it(SEC_POLICY, filename)
 
