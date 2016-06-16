@@ -101,25 +101,43 @@ def parse_SECPOLICY(soup):
 			## APPEND THE SECTION COUNT
 			ruleItem.append(unicode(sectionCount))
 			SEC_POLICY["rules"].append(ruleItem)
-		## SET RULE ITEM BACK TO 0
+
+		## SET RULE ITEM BACK TO 
+
 		ruleItem = []
 
 def do_it(pp, filename):
 
 	filename = SEC_POLICY["title"] + "_" + filename + "_myCVT_results.txt"
 
-	if os.path.exists(filename):
-		c = raw_input("\033[1;33m[?]\033[0m '%s' output file already exists. Do you want to replace it? ([Y]/n) > " % filename).strip()
-		if c == "n" or c == "N":
-			print "\033[1;31m[!] Error\033[0m: Please remove file '%s', or agree to overwrite." % filename
-			exit(1)
-		else:
-			open(filename, "w").close()
+#	if os.path.exists(filename):
+#		c = raw_input("\033[1;33m[?]\033[0m '%s' output file already exists. Do you want to replace it? ([Y]/n) > " % filename).strip()
+#		if c == "n" or c == "N":
+#			print "\033[1;31m[!] Error\033[0m: Please remove file '%s', or agree to overwrite." % filename
+#			exit(1)
+#		else:
+	open(filename, "w").close()
 
 	ids = []
 	table_data = []
 	headers = []
 	no_section = []
+
+	count = 0
+	
+	potentially_weak_services = [ 
+					"22", 	"ssh", 
+					"23", 	"telnet", 
+					"80", 	"http",
+					"21", 	"ftp",
+					"20", 	"ftp",
+					"69", 	"tftp",
+					"123", 	"ntp",
+					"161", 	"snmp",
+					"5060", "sip",
+					"3389", "remote",
+					]					
+					 
 
 	for h in pp["columns"]:
 		headers.append(str(h))
@@ -139,11 +157,15 @@ def do_it(pp, filename):
 #	exit(1)
 
 	for id in pp["ruleSections"]:
-
+		print pp["rules"][0]
+		print pp["rules"][1]
 		for rule in pp["rules"]:
-#			print rule
+			print rule	
+			print pp["rules"][1]
 			rule = clean_rule(rule)
-			if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule[0]:
+		
+			if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule[0] or rule[SERVICEKEY] in potentially_weak_services:
+				
 				if rule[len(rule)-1] == id[1]:
 					table_data.append(rule)
 					pp["rules"].remove(rule)
@@ -208,6 +230,8 @@ def do_it(pp, filename):
 
 	print "\033[1;32m[+]\033[0m Written output to file './%s'\n" % filename
 
+	print "\n\033[1;31m[!]\033[0m '%d' potentially dangerous rules identified.\n" % count
+
 
 def write_output(filename, table, id):
 
@@ -249,18 +273,19 @@ if __name__ == "__main__":
 	# Get and check file exists
 	
 	f = sys.argv[sys.argv.index("-f")+1]
-	if os.path.exists(f):
-		filename = f.split("/").pop()
-	else:
+
+	if not os.path.exists(f):
 		usage()
 		print "\033[1;31m[!] Error:\033[0m Cannot find file '%s'" % f
 		exit(1)
 
 	# Parse it with BS4
 	print "\033[1;33m[-]\033[0m Parsing the HTML..."
-	soup=BeautifulSoup(open(filename))
+	soup=BeautifulSoup(open(f))
 	rows=soup.find_all(class_=re.compile("(even|odd)_data_row"))
 	print "\033[1;32m[+]\033[0m Done."
+
+	filename = f.split("/").pop()
 
 	# Parse internally
 	print "\033[1;33m[-]\033[0m Searching for interesting rules..."
