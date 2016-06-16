@@ -191,7 +191,8 @@ def write_output(filename, table, id):
 
 def clean_td(table_data):
 	for rule in table_data:
-		rule.pop(len(rule)-1)
+		if len(rule) > 0:
+			rule.pop(len(rule)-1)
 	return table_data
 
 def clean_rule(rule):
@@ -218,7 +219,8 @@ if __name__ == "__main__":
 		fs = sys.argv[sys.argv.index("-f")+1]
 		find_configs(fs)
 		exit(1)
-		
+
+
 	filename = sys.argv[1].split("/").pop()
 	parse_SECPOLICY(soup)
 	banner()
