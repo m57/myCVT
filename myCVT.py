@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 #    myCVT - Checkpoint Firewall Ruleset Auditor
-#    Copyright (C) 2015 @_x90__ , jessikawii
+#    Copyright (C) 2015 @_x90__ , @jeszicawii
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ from terminaltables import SingleTable
 from terminaltables import AsciiTable
 from bs4 import BeautifulSoup
 
-version = "v 0.1.8"
+version = "v 0.1.9"
 verbose = 0
 SEC_POLICY = { "title": "", "columns" : [] , "rules" : [] , "ruleSections" : [] }
 conf_files = [ "objects.C", "objects.C_41", "objects_5_0.C", "rules.C", "rulebases.fws", "rulebases_5_0.fws" ]
@@ -46,6 +46,7 @@ def usage():
 		print "\nOptional Arguments:\n"
 		print "\t-s\t\tSearch for Checkpoint object files which can be imported into Nipper. (This cannot be used with '-f')"
 		print "\t-v\t\tPrint the results of the findings to the terminal in a table."
+		print "\t--csv\t\tAlso output a CSV formatted file with the interesting rules."
 		print""
 
 
@@ -106,19 +107,31 @@ def parse_SECPOLICY(soup):
 
 		ruleItem = []
 
-def do_it(pp, filename):
+def do_it(pp, filename, csv):
 
-	filename = SEC_POLICY["title"] + "_" + filename + "_myCVT_results.txt"
+	filename = SEC_POLICY["title"] + "_" + filename + "_myCVT_results"
 
-#	if os.path.exists(filename):
-#		c = raw_input("\033[1;33m[?]\033[0m '%s' output file already exists. Do you want to replace it? ([Y]/n) > " % filename).strip()
-#		if c == "n" or c == "N":
-#			print "\033[1;31m[!] Error\033[0m: Please remove file '%s', or agree to overwrite." % filename
-#			exit(1)
-#		else:
-	open(filename, "w").close()
+	if os.path.exists(filename+".txt") or (csv and os.path.exists(filename+".csv")):
+	
+		c = raw_input("\033[1;33m[?]\033[0m '%s.txt' output file already exists. Do you want to replace it? ([Y]/n) > " % filename).strip()
 
-	ids = []
+		if c == "n" or c == "N":
+			print "\033[1;31m[!] Error\033[0m: Please remove file '%s', or agree to overwrite." % filename
+			exit(1)
+
+		if csv:
+			c = raw_input("\033[1;33m[?]\033[0m '%s.csv' output file already exists. Do you want to replace it? ([Y]/n) > " % filename).strip()
+			if c == "n" or c == "N":
+				print "\033[1;31m[!] Error\033[0m: Please remove file '%s', or agree to overwrite." % filename
+				exit(1)
+
+			
+	open(filename + ".txt", "w").close()
+	
+	if csv:
+		open(filename + ".csv", "w").close()
+
+	ruleSection_ids = []
 	table_data = []
 	headers = []
 	no_section = []
@@ -149,28 +162,27 @@ def do_it(pp, filename):
 	SERVICEKEY	= pp["columns"].index("SERVICE")
 
 	for id in pp["ruleSections"]:
-		ids.append(id[1])
+		ruleSection_ids.append(id[1])
 
 #	print pp.keys()
 #	print pp["ruleSections"][0]
 #	print pp["ruleSections"][0][0]
 #	exit(1)
 
-	for id in pp["ruleSections"]:
-		print pp["rules"][0]
-		print pp["rules"][1]
+	for ruleSectionListItem in pp["ruleSections"]:
 		for rule in pp["rules"]:
-			print rule	
-			print pp["rules"][1]
+
 			rule = clean_rule(rule)
 		
 			if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule[0] or rule[SERVICEKEY] in potentially_weak_services:
-				
-				if rule[len(rule)-1] == id[1]:
+
+				count += 1				
+
+				if rule[len(rule)-1] == ruleSectionListItem[1]:
 					table_data.append(rule)
 					pp["rules"].remove(rule)
 
-				elif rule[len(rule)-1] not in ids:
+				elif rule[len(rule)-1] not in ruleSection_ids:
 					if rule not in no_section:
 						no_section.append(rule)
 						pp["rules"].remove(rule)				
@@ -190,10 +202,13 @@ def do_it(pp, filename):
 			a = ascii.table
 			s = single.table
 
-			write_output(filename, a, id[0])
+			write_output(filename, a, ruleSectionListItem[0])
+
+			if csv:
+				write_csv_output(filename, table_data, ruleSectionListItem[0])
 
 			if (verbose):
-				print "--- SECTION: %s ---" % id[0]
+				print "--- SECTION: %s ---" % ruleSectionListItem[0]
 				print s
 
 			table_data = []
@@ -224,18 +239,36 @@ def do_it(pp, filename):
 
 		write_output(filename, a, "(NO SECTION DEFINED)")
 
+		if csv:
+			write_csv_output(filename, table_data, ruleSectionListItem[0])
+
 		if (verbose):
 			print "--- NO SECTION DEFINED (THESE ARE USUALLY AT THE TOP) ---"
 			print s
 
-	print "\033[1;32m[+]\033[0m Written output to file './%s'\n" % filename
+	print "\033[1;32m[+]\033[0m Written output to file './%s.txt'" % filename 
+	
+	if csv:
+		print "\033[1;32m[+]\033[0m Written output to file './%s.csv'" % filename
+
+	count = count / len(pp["ruleSections"])
 
 	print "\n\033[1;31m[!]\033[0m '%d' potentially dangerous rules identified.\n" % count
 
 
+def write_csv_output(filename, table, id):
+
+	f = open(filename + ".csv", "a")
+	f.write(id+"\n")
+	for item_list in table:
+		for item in item_list:
+			f.write('"%s",' % item.replace("\n", ' ').strip()) 
+		f.write("\n")
+	f.close()
+
 def write_output(filename, table, id):
 
-	f = open(filename, "a")
+	f = open(filename + ".txt", "a")
 	f.write("\n--- SECTION: %s ---\n" % id)
 	f.write(table)
 	f.close()
@@ -258,6 +291,8 @@ if __name__ == "__main__":
 
 	banner()
 
+	csv = 0
+
 	if ("-f" not in sys.argv) or ("-h" in sys.argv) or ("--help" in sys.argv):
 		usage()
 		exit(1)
@@ -269,6 +304,9 @@ if __name__ == "__main__":
 		fs = sys.argv[sys.argv.index("-s")+1]
 		find_configs(fs)
 		exit(1)
+
+	if "--csv" in sys.argv:
+		csv = 1
 
 	# Get and check file exists
 	
@@ -293,5 +331,5 @@ if __name__ == "__main__":
 	print "\033[1;32m[+]\033[0m Done."
 	
 	# Profit 
-	do_it(SEC_POLICY, filename)
+	do_it(SEC_POLICY, filename, csv)
 
