@@ -26,7 +26,7 @@ from terminaltables import SingleTable
 from terminaltables import AsciiTable
 from bs4 import BeautifulSoup
 
-version = "v 0.1.9"
+version = "v 0.2"
 verbose = 0
 SEC_POLICY = { "title": "", "columns" : [] , "rules" : [] , "ruleSections" : [] }
 conf_files = [ "objects.C", "objects.C_41", "objects_5_0.C", "rules.C", "rulebases.fws", "rulebases_5_0.fws" ]
@@ -66,7 +66,7 @@ def parse_SECPOLICY(soup):
 	## GET THE HEADERS OF THE TABLE
 	for t in tags[1].find_all(class_=re.compile("header")):
 		SEC_POLICY["columns"].append(str(t.contents[0].strip()))
-		
+
 	## REMOVE FIRST COLUMN
 	SEC_POLICY["columns"].pop(0)
 
@@ -112,7 +112,7 @@ def do_it(pp, filename, csv):
 	filename = SEC_POLICY["title"] + "_" + filename + "_myCVT_results"
 
 	if os.path.exists(filename+".txt") or (csv and os.path.exists(filename+".csv")):
-	
+
 		c = raw_input("\033[1;33m[?]\033[0m '%s.txt' output file already exists. Do you want to replace it? ([Y]/n) > " % filename).strip()
 
 		if c == "n" or c == "N":
@@ -125,9 +125,8 @@ def do_it(pp, filename, csv):
 				print "\033[1;31m[!] Error\033[0m: Please remove file '%s', or agree to overwrite." % filename
 				exit(1)
 
-			
 	open(filename + ".txt", "w").close()
-	
+
 	if csv:
 		open(filename + ".csv", "w").close()
 
@@ -137,10 +136,10 @@ def do_it(pp, filename, csv):
 	no_section = []
 
 	count = 0
-	
+
 	potentially_weak_services = [ 
-					"22", 	"ssh", 
-					"23", 	"telnet", 
+					"22", 	"ssh",
+					"23", 	"telnet",
 					"80", 	"http",
 					"21", 	"ftp",
 					"20", 	"ftp",
@@ -149,8 +148,7 @@ def do_it(pp, filename, csv):
 					"161", 	"snmp",
 					"5060", "sip",
 					"3389", "remote",
-					]					
-					 
+					]
 
 	for h in pp["columns"]:
 		headers.append(str(h))
@@ -170,29 +168,38 @@ def do_it(pp, filename, csv):
 #	exit(1)
 
 	for ruleSectionListItem in pp["ruleSections"]:
-		for rule in pp["rules"]:
+		for rule in pp["rules"][:]:
 
 			rule = clean_rule(rule)
-		
-			if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule[0] or rule[SERVICEKEY] in potentially_weak_services:
 
-				count += 1				
+			if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule[0] or len(set(rule[SERVICEKEY].split("\n")).intersection(set(potentially_weak_services))) > 0:
 
+				# rule[len(rule)-1] is the rules section ID that has been found when parsing
 				if rule[len(rule)-1] == ruleSectionListItem[1]:
+
+					count += 1
 					table_data.append(rule)
 					pp["rules"].remove(rule)
 
 				elif rule[len(rule)-1] not in ruleSection_ids:
 					if rule not in no_section:
+						count += 1
 						no_section.append(rule)
-						pp["rules"].remove(rule)				
+						pp["rules"].remove(rule)
+
 				else:
-					# hmmmmmmm so confused
+					# So we found a rule, with an incorrect section id set, and it was not in the no_section already...
+					# This is because we iterate the sections first... needs re-write
+					#print rule
+					#raw_input("paused...")
 					pass
 
+		# If any rules were flagged as suspicious, then the table_data [] will be > 1
+		# as the headers make it == 1 - so >= 1 is incorrect
 		if len(table_data) > 1:
+
 			new_table_data = clean_td(table_data)
-			
+
 			ascii = AsciiTable(table_data)
 			single = SingleTable(table_data)
 
@@ -214,7 +221,11 @@ def do_it(pp, filename, csv):
 			table_data = []
 			table_data.append(pp['columns'])
 
+
+	# If there are any rules with no section defined,
+	# then we have a sectionless file, so do this below
 	if len(no_section) > 0:
+
 		table_data = []
 		headers = []
 
@@ -247,11 +258,9 @@ def do_it(pp, filename, csv):
 			print s
 
 	print "\033[1;32m[+]\033[0m Written output to file './%s.txt'" % filename 
-	
+
 	if csv:
 		print "\033[1;32m[+]\033[0m Written output to file './%s.csv'" % filename
-
-	count = count / len(pp["ruleSections"])
 
 	print "\n\033[1;31m[!]\033[0m '%d' potentially dangerous rules identified.\n" % count
 
@@ -274,6 +283,7 @@ def write_output(filename, table, id):
 	f.close()
 
 def clean_td(table_data):
+
 	for rule in table_data:
 		if (len(rule) > 0) and (not rule == SEC_POLICY["columns"]):
 			rule.pop(len(rule)-1)
@@ -309,7 +319,7 @@ if __name__ == "__main__":
 		csv = 1
 
 	# Get and check file exists
-	
+
 	f = sys.argv[sys.argv.index("-f")+1]
 
 	if not os.path.exists(f):
@@ -319,7 +329,7 @@ if __name__ == "__main__":
 
 	# Parse it with BS4
 	print "\033[1;33m[-]\033[0m Parsing the HTML..."
-	soup=BeautifulSoup(open(f))
+	soup=BeautifulSoup(open(f), "lxml")
 	rows=soup.find_all(class_=re.compile("(even|odd)_data_row"))
 	print "\033[1;32m[+]\033[0m Done."
 
@@ -329,7 +339,7 @@ if __name__ == "__main__":
 	print "\033[1;33m[-]\033[0m Searching for interesting rules..."
 	parse_SECPOLICY(soup)
 	print "\033[1;32m[+]\033[0m Done."
-	
-	# Profit 
+
+	# Profit
 	do_it(SEC_POLICY, filename, csv)
 
