@@ -1,17 +1,55 @@
 # myCVT
-Checkpoint Firewall Ruleset Auditor 
-( For those shitty HTMLexports that a client gives you for Firewall Ruleset Reviews )
 
-This has been created out of frustration of Checkpoint firewall reviews. Whilst nipper-ng is great 
-thanks to Ian Ventura Whiting, it doesnt support HTML Checkpoint Firewall exports. Although, I dont 
-blame him for not doing it.
+"myCVT" , aka. "My Checkpoint Visualisation Tool" is written by myself due to the requirements 
+of Checkpoint Firewall reviews, when all you are given by a client is the HTML export from the 
+Checkpoint Visualisation Tool. Usually we get given the relevant Object files and the like, which 
+can be run through Nipper, however, sometimes this is not the case and you are left with 
+thousands of rules of which you need to manually review! :/ boring!
 
-It should be useful for any pentesters or auditors looking to quickly highlight rules which have
-"Any" "Any" 's and "Disabled" in the relevant sections :)
+This tool/script aims to speed up this process by parsing and highlighting the various rules that 
+may be of interest, when engaging in a IT health check.
 
-Pretty much in alpha stage, let one of us know if you find any bugs, willing to improve it!
+Currently as seen in the source, it will flag on rules which have "Any" in the following areas:
 
-@_x90__
+* Source field
+* Destination field
+* Service field
 
-/u/jessikawii
+And also a small amount of sensitive services such as:
 
+* SSH
+* FTP
+* HTTP
+* SNMP
+
+etc. amongst others but this can be seen in the source. Please feel free to request more features 
+or report bugs in the Github page, and ill be sure to update this as I use this myself during 
+engagements!
+
+## Dependencies:
+
+* Python BeautifulSoup4 (usually python2-beautifulsoup4
+* Python terminaltables (usually pip install terminaltables)
+
+### Usage
+
+<img src="http://i.imgur.com/0J63KHs.png">
+
+### Verbose output
+
+<img src="http://i.imgur.com/fzzAxCA.png">
+
+### Normal output, with CSV file output file
+
+<img src="http://i.imgur.com/s9gaSTB.png">
+
+### Commands 
+```
+# ./myCVT.py -f fw1.html
+# ./myCVT.py -f fw1.html --csv
+# ./myCVT.py -f fw1.html -v
+```
+
+Have fun and please report your thoughts if you care enough
+
+~ x90
