@@ -30,6 +30,7 @@ engagements!
 
 * Python BeautifulSoup4 (usually python2-beautifulsoup4
 * Python terminaltables (usually pip install terminaltables)
+* Python lxml           (usually python-lxml)
 
 ### Usage
 
