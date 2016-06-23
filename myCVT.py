@@ -326,20 +326,17 @@ if __name__ == "__main__":
 		usage()
 		print "\033[1;31m[!] Error:\033[0m Cannot find file '%s'" % f
 		exit(1)
-
+	
+	filename = f.split("/").pop()
+	
 	# Parse it with BS4
 	print "\033[1;33m[-]\033[0m Parsing the HTML..."
 	soup=BeautifulSoup(open(f), "lxml")
 	rows=soup.find_all(class_=re.compile("(even|odd)_data_row"))
-	print "\033[1;32m[+]\033[0m Done."
-
-	filename = f.split("/").pop()
-
 	# Parse internally
-	print "\033[1;33m[-]\033[0m Searching for interesting rules..."
 	parse_SECPOLICY(soup)
 	print "\033[1;32m[+]\033[0m Done."
-
 	# Profit
+	print "\033[1;33m[-]\033[0m Searching for interesting rules..."
 	do_it(SEC_POLICY, filename, csv)
-
+	print "\033[1;32m[+]\033[0m Done."
