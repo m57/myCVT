@@ -175,7 +175,12 @@ def do_it(pp, filename, csv):
 
 			rule = clean_rule(rule)
 
-			if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule[0] or len(set([r.strip() for r in rule[SERVICEKEY].split("\n")]).intersection(set(potentially_weak_services))) > 0:
+			weak_services = 0
+			cur_rule_servs = [r.strip() for r in rule[SERVICEKEY].split("\n")]
+			if len(set(cur_rule_servs).intersection(set(potentially_weak_services))) > 0:
+				weak_services = 1
+
+			if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule[0] or weak_services:
 
 				# rule[len(rule)-1] is the rules section ID that has been found when parsing
 				if rule[len(rule)-1] == ruleSectionListItem[1]:
@@ -325,7 +330,7 @@ if __name__ == "__main__":
 				out_dir = outdir
 		else:
 			usage()
-			print "\033[1;31m[!] Error:\033[0m Output directory '%s' does not exist." % f
+			print "\033[1;31m[!] Error:\033[0m Output directory '%s' does not exist." % outdir
 			exit(1)
 
 	if "--csv" in sys.argv:
