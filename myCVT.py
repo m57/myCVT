@@ -26,10 +26,11 @@ from terminaltables import SingleTable
 from terminaltables import AsciiTable
 from bs4 import BeautifulSoup
 
-version = "v 0.3"
+version = "v0.4"
 verbose = 0
 SEC_POLICY = { "title": "", "columns" : [] , "rules" : [] , "ruleSections" : [] }
 conf_files = [ "objects.C", "objects.C_41", "objects_5_0.C", "rules.C", "rulebases.fws", "rulebases_5_0.fws" ]
+out_dir = "./"
 
 def banner():
 	print "\n\033[1;32m"
@@ -46,6 +47,7 @@ def usage():
 		print "\nOptional Arguments:\n"
 		print "\t-s\t\tSearch for Checkpoint object files which can be imported into Nipper. (This cannot be used with '-f')"
 		print "\t-v\t\tPrint the results of the findings to the terminal in a table."
+		print "\t-o\t\tSet output directory."
 		print "\t--csv\t\tAlso output a CSV formatted file with the interesting rules."
 		print""
 
@@ -82,6 +84,7 @@ def parse_SECPOLICY(soup):
 	## SET THE SECTION COUNT TO 0
 	sectionCount = 0
 	for rule in rules:
+
 		## FOR EACH RULE IN THE TABLE, FIND ALL THE TDS
 		tds=rule.find_all("td")	
 		## APPEND THE TDS 
@@ -103,7 +106,7 @@ def parse_SECPOLICY(soup):
 			ruleItem.append(unicode(sectionCount))
 			SEC_POLICY["rules"].append(ruleItem)
 
-		## SET RULE ITEM BACK TO 
+		## SET RULE ITEM BACK TO []
 
 		ruleItem = []
 
@@ -111,24 +114,24 @@ def do_it(pp, filename, csv):
 
 	filename = SEC_POLICY["title"] + "_" + filename + "_myCVT_results"
 
-	if os.path.exists(filename+".txt") or (csv and os.path.exists(filename+".csv")):
+	if os.path.exists(out_dir+filename+".txt") or (csv and os.path.exists(out_dir+filename+".csv")):
 
-		c = raw_input("\033[1;33m[?]\033[0m '%s.txt' output file already exists. Do you want to replace it? ([Y]/n) > " % filename).strip()
+		c = raw_input("\033[1;33m[?]\033[0m '%s.txt' output file already exists. Do you want to replace it? ([Y]/n) > " % (out_dir + filename)).strip()
 
 		if c == "n" or c == "N":
-			print "\033[1;31m[!] Error\033[0m: Please remove file '%s', or agree to overwrite." % filename
+			print "\033[1;31m[!] Error\033[0m: Please remove file '%s', or agree to overwrite." % out_dir + filename
 			exit(1)
 
 		if csv:
-			c = raw_input("\033[1;33m[?]\033[0m '%s.csv' output file already exists. Do you want to replace it? ([Y]/n) > " % filename).strip()
+			c = raw_input("\033[1;33m[?]\033[0m '%s.csv' output file already exists. Do you want to replace it? ([Y]/n) > " % (out_dir + filename)).strip()
 			if c == "n" or c == "N":
-				print "\033[1;31m[!] Error\033[0m: Please remove file '%s', or agree to overwrite." % filename
+				print "\033[1;31m[!] Error\033[0m: Please remove file '%s', or agree to overwrite." % out_dir + filename
 				exit(1)
 
-	open(filename + ".txt", "w").close()
+	open(out_dir + filename + ".txt", "w").close()
 
 	if csv:
-		open(filename + ".csv", "w").close()
+		open(out_dir + filename + ".csv", "w").close()
 
 	ruleSection_ids = []
 	table_data = []
@@ -256,17 +259,17 @@ def do_it(pp, filename, csv):
 			print "--- NO SECTION DEFINED (THESE ARE USUALLY AT THE TOP) ---"
 			print s
 
-	print "\033[1;32m[+]\033[0m Written output to file './%s.txt'" % filename 
+	print "\033[1;32m[+]\033[0m Written output to file './%s.txt'" % (out_dir + filename) 
 
 	if csv:
-		print "\033[1;32m[+]\033[0m Written output to file './%s.csv'" % filename
+		print "\033[1;32m[+]\033[0m Written output to file './%s.csv'" % (out_dir + filename)
 
 	print "\n\033[1;31m[!]\033[0m '%d' potentially dangerous rules identified.\n" % count
 
 
 def write_csv_output(filename, table, id):
 
-	f = open(filename + ".csv", "a")
+	f = open(out_dir + filename + ".csv", "a")
 	f.write(id+"\n")
 	for item_list in table:
 		for item in item_list:
@@ -275,8 +278,7 @@ def write_csv_output(filename, table, id):
 	f.close()
 
 def write_output(filename, table, id):
-
-	f = open(filename + ".txt", "a")
+	f = open(out_dir + filename + ".txt", "a")
 	f.write("\n--- SECTION: %s ---\n" % id)
 	f.write(table)
 	f.close()
@@ -313,6 +315,18 @@ if __name__ == "__main__":
 		fs = sys.argv[sys.argv.index("-s")+1]
 		find_configs(fs)
 		exit(1)
+
+	if "-o" in sys.argv:
+		outdir = sys.argv[sys.argv.index("-o")+1].strip()
+		if os.path.exists(outdir):
+			if not outdir[len(outdir)-1:len(outdir)] == "/":
+				out_dir = outdir + "/"
+			else:
+				out_dir = outdir
+		else:
+			usage()
+			print "\033[1;31m[!] Error:\033[0m Output directory '%s' does not exist." % f
+			exit(1)
 
 	if "--csv" in sys.argv:
 		csv = 1
