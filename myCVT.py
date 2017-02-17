@@ -26,7 +26,7 @@ from terminaltables import SingleTable
 from terminaltables import AsciiTable
 from bs4 import BeautifulSoup
 
-version = "v 0.2"
+version = "v 0.3"
 verbose = 0
 SEC_POLICY = { "title": "", "columns" : [] , "rules" : [] , "ruleSections" : [] }
 conf_files = [ "objects.C", "objects.C_41", "objects_5_0.C", "rules.C", "rulebases.fws", "rulebases_5_0.fws" ]
@@ -137,7 +137,7 @@ def do_it(pp, filename, csv):
 
 	count = 0
 
-	potentially_weak_services = [ 
+	potentially_weak_services = [
 					"22", 	"ssh",
 					"23", 	"telnet",
 					"80", 	"http",
@@ -172,11 +172,10 @@ def do_it(pp, filename, csv):
 
 			rule = clean_rule(rule)
 
-			if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule[0] or len(set(rule[SERVICEKEY].split("\n")).intersection(set(potentially_weak_services))) > 0:
+			if u"Any" in rule[SOURCEKEY] or u"Any" in rule[DESTKEY] or u"Any" in rule[SERVICEKEY] or u"Disabled" in rule[0] or len(set([r.strip() for r in rule[SERVICEKEY].split("\n")]).intersection(set(potentially_weak_services))) > 0:
 
 				# rule[len(rule)-1] is the rules section ID that has been found when parsing
 				if rule[len(rule)-1] == ruleSectionListItem[1]:
-
 					count += 1
 					table_data.append(rule)
 					pp["rules"].remove(rule)
@@ -190,8 +189,8 @@ def do_it(pp, filename, csv):
 				else:
 					# So we found a rule, with an incorrect section id set, and it was not in the no_section already...
 					# This is because we iterate the sections first... needs re-write
-					#print rule
-					#raw_input("paused...")
+					# print rule
+					# raw_input("paused...")
 					pass
 
 		# If any rules were flagged as suspicious, then the table_data [] will be > 1
@@ -326,9 +325,9 @@ if __name__ == "__main__":
 		usage()
 		print "\033[1;31m[!] Error:\033[0m Cannot find file '%s'" % f
 		exit(1)
-	
+
 	filename = f.split("/").pop()
-	
+
 	# Parse it with BS4
 	print "\033[1;33m[-]\033[0m Parsing the HTML..."
 	soup=BeautifulSoup(open(f), "lxml")
