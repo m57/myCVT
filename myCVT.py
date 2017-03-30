@@ -301,6 +301,10 @@ def clean_rule(rule):
 	if len(result) > 0:
 		rule[len(rule)-2] = unicode(result[0])
 
+	result = re.findall(u".*(?=\x91)", rule[len(rule)-2])
+	if len(result) > 0:
+		rule[len(rule)-2] = unicode(result[0])
+
 	return rule
 
 if __name__ == "__main__":
